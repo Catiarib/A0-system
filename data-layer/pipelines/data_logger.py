@@ -1,6 +1,6 @@
 """
 A·0 Data Layer - Data Logger v0.1
-Registra metricas de sesiones en tiempo real via OSC
+Logs session metrics in real time via OSC
 Stack: Python + OSC + PostgreSQL
 BCN / 2026
 """
@@ -11,9 +11,10 @@ from datetime import datetime
 from pythonosc import dispatcher, osc_server
 import threading
 import json
+import logging
 import os
 
-# --- CONFIGURACION ---
+# --- CONFIGURATION ---
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "localhost"),
     "database": os.getenv("DB_NAME", "a0_system"),
@@ -22,147 +23,203 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT", "5432")
 }
 
-OSC_IP = "0.0.0.0"
-OSC_PORT = 8000
+OSC_IP = "0.0.0.0"       # Listen on all network interfaces
+OSC_PORT = 8000           # Default OSC port for A·0 system
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
-class A0DataLogger:
+# --- DATABASE CONNECTION ---
+def get_db_connection():
+    """Establish and return a PostgreSQL database connection."""
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        logger.info("Database connection established")
+        return conn
+    except psycopg2.Error as e:
+        logger.error(f"Database connection failed: {e}")
+        raise
+
+
+# --- SESSION MANAGEMENT ---
+def create_session(project_id: str, venue_name: str, scene_version: str = "v0.1") -> str:
     """
-    Logger principal del sistema A·0.
-    Escucha mensajes OSC del motor visual y los persiste en SQL.
+    Creates a new session record in the database.
+    Returns the generated session_id (UUID).
     """
-
-    def __init__(self, project_id: str, venue_name: str, scene_version: str):
-        self.project_id = project_id
-        self.venue_name = venue_name
-        self.scene_version = scene_version
-        self.session_id = None
-        self.conn = None
-        self._connect_db()
-        self._create_session()
-
-    def _connect_db(self):
-        """Conecta a la base de datos PostgreSQL."""
-        try:
-            self.conn = psycopg2.connect(**DB_CONFIG)
-            print(f"[A0] DB conectada: {DB_CONFIG['database']}")
-        except Exception as e:
-            print(f"[A0] ERROR DB: {e}")
-            raise
-
-    def _create_session(self):
-        """Crea un registro de sesion al inicio."""
-        self.session_id = str(uuid.uuid4())
-        cur = self.conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO sessions (session_id, project_id, venue_name,
-                                  session_date, scene_version)
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            (self.session_id, self.project_id, self.venue_name,
-             datetime.now(), self.scene_version)
-        )
-        self.conn.commit()
-        cur.close()
-        print(f"[A0] Sesion iniciada: {self.session_id}")
-
-    def log_occupancy(self, zone_id: str, count: int, dwell_time: int = 0):
-        """Registra dato de ocupacion por zona."""
-        cur = self.conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO audience_metrics
-                (session_id, timestamp, zone_id, occupancy_count,
-                 dwell_time_sec, interaction)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """,
-            (self.session_id, datetime.now(), zone_id,
-             count, dwell_time, count > 0)
-        )
-        self.conn.commit()
-        cur.close()
-
-    def log_event(self, block_id: int, event_type: str,
-                  value: float, osc_address: str):
-        """Registra un evento del sistema."""
-        cur = self.conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO system_events
-                (session_id, timestamp, block_id, event_type,
-                 event_value, osc_address)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """,
-            (self.session_id, datetime.now(), block_id,
-             event_type, value, osc_address)
-        )
-        self.conn.commit()
-        cur.close()
-
-    def close_session(self, duration_min: int):
-        """Cierra la sesion con duracion total."""
-        cur = self.conn.cursor()
-        cur.execute(
-            "UPDATE sessions SET duration_min = %s WHERE session_id = %s",
-            (duration_min, self.session_id)
-        )
-        self.conn.commit()
-        cur.close()
-        if self.conn:
-            self.conn.close()
-        print(f"[A0] Sesion cerrada: {self.session_id} ({duration_min} min)")
+    session_id = str(uuid.uuid4())
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO sessions (session_id, project_id, venue_name, scene_version)
+                VALUES (%s, %s, %s, %s)
+            """, (session_id, project_id, venue_name, scene_version))
+            conn.commit()
+            logger.info(f"Session created: {session_id} | Project: {project_id} | Venue: {venue_name}")
+    except psycopg2.Error as e:
+        conn.rollback()
+        logger.error(f"Failed to create session: {e}")
+        raise
+    finally:
+        conn.close()
+    return session_id
 
 
-# --- HANDLERS OSC ---
+def close_session(session_id: str, duration_min: int, notes: str = ""):
+    """Closes a session by recording its total duration and optional notes."""
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE sessions
+                SET duration_min = %s, notes = %s
+                WHERE session_id = %s
+            """, (duration_min, notes, session_id))
+            conn.commit()
+            logger.info(f"Session closed: {session_id} | Duration: {duration_min} min")
+    except psycopg2.Error as e:
+        conn.rollback()
+        logger.error(f"Failed to close session: {e}")
+    finally:
+        conn.close()
 
-def handle_occupancy(unused_addr, zone_id, count, dwell_time=0):
-    """Recibe: /a0/occupancy <zone_id> <count> [dwell_time]"""
-    if logger:
-        logger.log_occupancy(zone_id, int(count), int(dwell_time))
-        print(f"[OSC] Zona {zone_id}: {count} personas")
+
+# --- OSC HANDLERS ---
+def handle_audience_metric(address, *args):
+    """
+    OSC handler: /audience/metric
+    Expected args: session_id, zone_id, occupancy_count, dwell_time_sec, interaction (0/1)
+    """
+    if len(args) < 5:
+        logger.warning(f"Insufficient arguments for audience metric: {args}")
+        return
+
+    session_id, zone_id, occupancy, dwell, interaction = args[0], args[1], args[2], args[3], bool(args[4])
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO audience_metrics
+                    (session_id, timestamp, zone_id, occupancy_count, dwell_time_sec, interaction)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (session_id, datetime.now(), zone_id, occupancy, dwell, interaction))
+            conn.commit()
+            logger.debug(f"Metric logged | Zone: {zone_id} | Occupancy: {occupancy} | Dwell: {dwell}s")
+    except psycopg2.Error as e:
+        conn.rollback()
+        logger.error(f"Failed to log audience metric: {e}")
+    finally:
+        conn.close()
 
 
-def handle_event(unused_addr, block_id, event_type, value):
-    """Recibe: /a0/event <block_id> <event_type> <value>"""
-    if logger:
-        logger.log_event(int(block_id), event_type,
-                         float(value), unused_addr)
-        print(f"[OSC] Bloque {block_id} | {event_type}: {value}")
+def handle_system_event(address, *args):
+    """
+    OSC handler: /system/event
+    Expected args: session_id, event_type, module_id, severity, description
+    """
+    if len(args) < 5:
+        logger.warning(f"Insufficient arguments for system event: {args}")
+        return
+
+    session_id, event_type, module_id, severity, description = args[0], args[1], args[2], args[3], args[4]
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO system_events
+                    (session_id, event_type, module_id, severity, description)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (session_id, event_type, module_id, severity, description))
+            conn.commit()
+            logger.info(f"System event: [{severity.upper()}] {module_id} - {event_type}: {description}")
+    except psycopg2.Error as e:
+        conn.rollback()
+        logger.error(f"Failed to log system event: {e}")
+    finally:
+        conn.close()
 
 
-# --- MAIN ---
+def handle_engagement_data(address, *args):
+    """
+    OSC handler: /engagement/biometric
+    Expected args: session_id, zone_id, gsr_value, bpm_value, visitor_cohort
+    """
+    if len(args) < 5:
+        logger.warning(f"Insufficient arguments for engagement data: {args}")
+        return
 
+    session_id, zone_id, gsr, bpm, cohort = args[0], args[1], args[2], args[3], args[4]
+
+    # Calculate engagement score (weighted formula)
+    # GSR contributes 60%, BPM deviation from resting (70 bpm) contributes 40%
+    gsr_normalized = min(gsr / 10.0, 1.0) * 60          # Scale GSR to 0-60
+    bpm_deviation = min(abs(bpm - 70) / 50.0, 1.0) * 40  # Scale BPM deviation to 0-40
+    engagement_score = round(gsr_normalized + bpm_deviation, 2)
+
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO emotional_engagement
+                    (session_id, zone_id, timestamp, gsr_value, bpm_value, engagement_score, visitor_cohort)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (session_id, zone_id, datetime.now(), gsr, bpm, engagement_score, cohort))
+            conn.commit()
+            logger.debug(f"Engagement logged | Zone: {zone_id} | Score: {engagement_score} | Cohort: {cohort}")
+    except psycopg2.Error as e:
+        conn.rollback()
+        logger.error(f"Failed to log engagement data: {e}")
+    finally:
+        conn.close()
+
+
+# --- OSC SERVER SETUP ---
+def start_osc_server():
+    """Configure and start the OSC server with all registered handlers."""
+    d = dispatcher.Dispatcher()
+
+    # Register OSC address handlers
+    d.map("/audience/metric", handle_audience_metric)
+    d.map("/system/event", handle_system_event)
+    d.map("/engagement/biometric", handle_engagement_data)
+
+    server = osc_server.ThreadingOSCUDPServer((OSC_IP, OSC_PORT), d)
+    logger.info(f"A·0 OSC Logger listening on {OSC_IP}:{OSC_PORT}")
+
+    # Run server in a daemon thread
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+
+    return server
+
+
+# --- ENTRY POINT ---
 if __name__ == "__main__":
-    import argparse
+    logger.info("Starting A·0 Data Logger...")
+    server = start_osc_server()
 
-    parser = argparse.ArgumentParser(description="A·0 Data Logger")
-    parser.add_argument("--project", default="A0-BCN-001")
-    parser.add_argument("--venue", default="Venue Test")
-    parser.add_argument("--scene-version", default="v0.1")
-    args = parser.parse_args()
-
-    logger = A0DataLogger(
-        project_id=args.project,
-        venue_name=args.venue,
-        scene_version=args.scene_version
+    # Example: create a test session on startup
+    test_session_id = create_session(
+        project_id="A0-BCN-001",
+        venue_name="Pilot Venue - Barcelona",
+        scene_version="v0.1-beta"
     )
-
-    # Configurar dispatcher OSC
-    disp = dispatcher.Dispatcher()
-    disp.map("/a0/occupancy", handle_occupancy)
-    disp.map("/a0/event", handle_event)
-
-    # Iniciar servidor OSC
-    server = osc_server.ThreadingOSCUDPServer((OSC_IP, OSC_PORT), disp)
-    print(f"[A0] Data Logger activo en {OSC_IP}:{OSC_PORT}")
-    print(f"[A0] Proyecto: {args.project} | Venue: {args.venue}")
-    print("[A0] Esperando datos OSC... (Ctrl+C para detener)")
+    logger.info(f"Test session active: {test_session_id}")
+    logger.info("Logger running. Press Ctrl+C to stop.")
 
     try:
-        server.serve_forever()
+        # Keep main thread alive
+        while True:
+            pass
     except KeyboardInterrupt:
-        start = datetime.now()
-        duration = int((datetime.now() - start).seconds / 60)
-        logger.close_session(duration)
-        print("\n[A0] Data Logger detenido.")
+        logger.info("A·0 Data Logger stopped.")
+        close_session(test_session_id, duration_min=0, notes="Manual stop via KeyboardInterrupt")
