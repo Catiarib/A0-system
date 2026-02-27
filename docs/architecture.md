@@ -1,118 +1,187 @@
-# A·0 — Arquitectura Tecnica
+# A·0 — Technical Architecture
 
 > System Book v0.1 | BCN | 2026
 
 ---
 
-## Vision General
+## General Vision
 
-A·0 opera como un sistema operativo en tres capas:
-
-```
-[CAPA 1]  Motor Visual Modular    →  Los 10 Bloques Base
-[CAPA 2]  Data Layer              →  Python + SQL + Power BI
-[CAPA 3]  Dashboard & Reporting   →  Metricas en tiempo real
-```
-
----
-
-## Los 10 Bloques Modulares
-
-### Bloque 1: Particle Flow Reactivo
-- **Funcion**: Genera flujos de particulas cuyas posiciones se calculan desde GPU textures
-- **Input**: Datos OSC / sensores de ocupacion
-- **Output**: Visual en tiempo real
-- **Stack**: TouchDesigner + GLSL shaders
-
-### Bloque 2: Material OSC-Controlled
-- **Funcion**: Modifica colores y texturas de materiales desde datos externos en tiempo real
-- **Input**: Streams OSC con parametros de color (HSV/RGB)
-- **Output**: Superficies reactivas al dato
-
-### Bloque 3: Geometry Morphing
-- **Funcion**: Transforma la geometria del espacio respondiendo a datos de ocupacion
-- **Input**: Conteo de personas, zonas de densidad
-- **Output**: Espacio visual que "respira" con la audiencia
-
-### Bloque 4: Narrative Sequencer
-- **Funcion**: Encadena escenas narrativas activadas por triggers de datos
-- **Input**: Eventos de datos (hora, ocupacion, temperatura, interaccion)
-- **Output**: Secuencia narrativa automatizada y versionada
-
-### Bloque 5: Audience Heatmap Visual
-- **Funcion**: Convierte datos de posicion y densidad de audiencia en mapa de calor visual
-- **Input**: Datos de sensores de posicion / camara de profundidad
-- **Output**: Visualizacion superpuesta al espacio
-
-### Bloque 6: Audio Reactor
-- **Funcion**: Analiza el audio del espacio y lo convierte en parametros visuales
-- **Input**: Stream de audio en tiempo real
-- **Output**: Parametros FFT que alimentan otros bloques
-
-### Bloque 7: Light Gradient Engine
-- **Funcion**: Controla gradientes de luz parametrizables via datos
-- **Input**: Parametros de hora, ocupacion, temperatura emocional
-- **Output**: Comandos DMX / Artnet para sistema de iluminacion
-
-### Bloque 8: Scene Transition System
-- **Funcion**: Gestiona las transiciones entre escenas versionadas
-- **Input**: Triggers de datos o tiempo
-- **Output**: Transicion visual fluida entre estados del sistema
-
-### Bloque 9: Data Logger
-- **Funcion**: Registra automaticamente todas las metricas de cada sesion
-- **Input**: Outputs de todos los bloques + sensores
-- **Output**: Dataset estructurado en SQL
-- **Stack**: Python + SQLite / PostgreSQL
-
-### Bloque 10: Dashboard Connector
-- **Funcion**: Exporta datos del sistema a Power BI en tiempo real
-- **Input**: Base de datos SQL del Data Logger
-- **Output**: Dashboard actualizado en tiempo real
-- **Stack**: Python + Power BI REST API
-
----
-
-## Stack Tecnologico Completo
+A·0 operates as an operating system in three integrated layers:
 
 ```
-Capa Visual:
-  - TouchDesigner (motor principal)
-  - Unreal Engine 5 (proyectos de gran escala)
-  - Three.js (deployments web/interactivos)
-  - GLSL / HLSL (shaders custom)
-
-Capa de Datos:
-  - Python 3.x (ETL, procesamiento, API)
-  - SQL / PostgreSQL (almacenamiento estructurado)
-  - Power BI (visualizacion y reporting)
-  - OSC Protocol (comunicacion en tiempo real)
-
-Infraestructura:
-  - GPU: NVIDIA RTX series (rendering en tiempo real)
-  - Sensores: LiDAR / camara de profundidad (ocupacion)
-  - Red: LAN de baja latencia para OSC
-  - Audio: interfaz de audio profesional para Audio Reactor
+[LAYER 1]  Modular Visual Engine    →  The 10 Base Blocks
+[LAYER 2]  Data Layer               →  Python + SQL + Power BI
+[LAYER 3]  Dashboard & Reporting    →  Real-time metrics
 ```
 
 ---
 
-## Principio de Modularidad
+## The 10 Modular Blocks
 
-Cada bloque:
-1. **Es independiente**: puede funcionar solo o en combinacion
-2. **Tiene inputs/outputs definidos**: protocolo OSC estandarizado
-3. **Es versionable**: cada mejora acumula valor de IP
-4. **Es reutilizable**: el codigo de un proyecto se reutiliza en el siguiente
+### Block 1: Reactive Particle Flow
+- **Function:** Generates particle flows whose positions are calculated from GPU textures
+- **Input:** OSC data / occupancy sensors
+- **Output:** Visual in real time
+- **Stack:** TouchDesigner + GLSL shaders
+
+### Block 2: Generative Projection Mapping
+- **Function:** Dynamic 3D mapping adapted to irregular surfaces
+- **Input:** Architectural geometry + real-time triggers
+- **Output:** Precisely calibrated projection
+- **Stack:** TouchDesigner + Resolume + MadMapper
+
+### Block 3: Spatial Audio Reactive
+- **Function:** Multi-channel audio that responds to visitor movement
+- **Input:** Tracking data (position + velocity)
+- **Output:** 3D immersive soundscape
+- **Stack:** Max/MSP + Ableton Live + spatial audio API
+
+### Block 4: Biometric Emotional Capture
+- **Function:** Real-time measurement of emotional response
+- **Input:** Wristbands (GSR/BPM) + optional facial analysis
+- **Output:** Structured emotional dataset
+- **Stack:** Python (biometric API) + SQL
+
+### Block 5: Visitor Flow Tracking
+- **Function:** Spatial mapping of visitor movement
+- **Input:** Infrared cameras + floor sensors
+- **Output:** Heatmaps + dwell time per zone
+- **Stack:** OpenCV + Python + PostgreSQL
+
+### Block 6: Dynamic LED Control
+- **Function:** Architectural lighting responsive to events
+- **Input:** OSC triggers + sensor data
+- **Output:** Synchronized lighting atmosphere
+- **Stack:** ENTTEC DMX + Resolume + Python control
+
+### Block 7: Interactive Surface
+- **Function:** Touch or gesture-responsive projection surfaces
+- **Input:** Leap Motion / depth cameras
+- **Output:** Interactive visual response
+- **Stack:** TouchDesigner + Unity (optional)
+
+### Block 8: Brand Narrative Engine
+- **Function:** Visual storytelling system linked to brand identity
+- **Input:** Brand assets + narrative script
+- **Output:** Coherent multi-screen visual sequence
+- **Stack:** After Effects + TouchDesigner + custom templates
+
+### Block 9: Real-Time Analytics Dashboard
+- **Function:** Live visualization of all experience KPIs
+- **Input:** All sensor + tracking data streams
+- **Output:** Power BI dashboard (public + internal)
+- **Stack:** Python ETL + SQL + Power BI streaming
+
+### Block 10: Replication Protocol
+- **Function:** Complete documentation for deploying the experience in new locations
+- **Input:** System Book v1 + module configurations
+- **Output:** Operational guide + calibration files
+- **Stack:** Markdown docs + Git versioning
+
+---
+
+## Data Layer Architecture
+
+### Data Flow
 
 ```
-Proyecto A  →  Bloques 1, 3, 9, 10
-Proyecto B  →  Bloques 1, 2, 4, 6, 9, 10
-Proyecto C  →  Todos los bloques
+SENSORS / INPUTS
+      |
+      v
+[Python Collector] ——> Raw data ingestion
+      |
+      v
+[ETL Pipeline] ————> Cleaning + transformation
+      |
+      v
+[PostgreSQL DB] ————> Structured storage
+      |
+      v
+[Power BI] ——————> Dashboards + reports
+      |
+      v
+[REST API] ——————> Client delivery
+```
 
-Cada proyecto MEJORA los bloques. No los reinventa.
+### Main Database Schema
+
+```sql
+-- Core session table
+CREATE TABLE sessions (
+  session_id    UUID PRIMARY KEY,
+  project_name  VARCHAR(100),
+  location      VARCHAR(100),
+  start_time    TIMESTAMP,
+  end_time      TIMESTAMP,
+  total_visitors INT
+);
+
+-- Visitor tracking table  
+CREATE TABLE visitor_events (
+  event_id      UUID PRIMARY KEY,
+  session_id    UUID REFERENCES sessions(session_id),
+  zone_id       VARCHAR(50),
+  entry_time    TIMESTAMP,
+  exit_time     TIMESTAMP,
+  dwell_seconds INT
+);
+
+-- Emotional engagement table
+CREATE TABLE emotional_data (
+  record_id     UUID PRIMARY KEY,
+  session_id    UUID REFERENCES sessions(session_id),
+  zone_id       VARCHAR(50),
+  timestamp     TIMESTAMP,
+  gsr_value     FLOAT,
+  bpm_value     FLOAT,
+  engagement_score FLOAT
+);
 ```
 
 ---
 
-*A·0 / Architecture Doc v0.1 / BCN / 2026*
+## Technical Stack Summary
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Visual Engine | TouchDesigner, Resolume, Unity | Real-time rendering |
+| Audio | Max/MSP, Ableton, IRCAM spat | Spatial sound |
+| Tracking | OpenCV, Depth cameras, IR | Visitor movement |
+| Data Collection | Python 3.11+ | ETL pipelines |
+| Database | PostgreSQL | Structured storage |
+| Analytics | Power BI, SQL | Reporting + KPIs |
+| Version Control | Git + GitHub | System documentation |
+| API | FastAPI + REST | Client data delivery |
+
+---
+
+## Deployment Model
+
+### On-Site Setup
+- Dedicated local server (minimum: 32GB RAM, RTX 4080)
+- Local network for sensor communication
+- Redundant systems for critical projections
+
+### Remote Monitoring
+- VPN access for real-time dashboard
+- Automated alerts for system failures
+- Nightly data sync to cloud (AWS / Azure)
+
+### Client Delivery
+- Power BI embedded dashboard (client access)
+- PDF automated report post-experience
+- Raw data export (CSV / JSON) on request
+
+---
+
+## Security & Privacy
+
+- All biometric data anonymized at collection point
+- GDPR compliant data handling
+- No facial recognition data stored
+- Visitor consent via on-site signage
+- Data retention: 12 months maximum
+
+---
+
+*A·0 Technical Architecture — System Book v0.1 — Barcelona, 2026*
