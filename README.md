@@ -2,7 +2,7 @@
 
 > **Narrative · Light · Space**
 > System Book v0.1 | BCN | 2026
-> Founder & CEO: Cátia Ribeiro
+> Founder: Cátia Ribeiro
 
 ---
 
@@ -140,7 +140,7 @@ Complete operational documentation for each project:
 
 ## Team
 
-**Cátia Ribeiro** — Founder & CEO
+**Cátia Ribeiro** — Founder
 Background in operations, data analytics, and immersive project strategy.
 Barcelona-based. Building the system from the ground up.
 
